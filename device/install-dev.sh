@@ -10,11 +10,17 @@ if [ "$(uname -s)" = "Darwin" ]; then
   else
     TARGET_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
   fi
-else
+elif [ "$1" != "chromium" ]; then
   if [ "$(whoami)" = "root" ]; then
     TARGET_DIR="/etc/opt/chrome/native-messaging-hosts"
   else
     TARGET_DIR="$HOME/.config/google-chrome/NativeMessagingHosts"
+  fi
+else
+  if [ "$(whoami)" = "root" ]; then
+    TARGET_DIR="/etc/chromium/native-messaging-hosts"
+  else
+    TARGET_DIR="$HOME/.config/chromium/NativeMessagingHosts"
   fi
 fi
 
@@ -35,3 +41,4 @@ cat "$DIR/$HOST_NAME.json" | sed "s/HOST_PATH/$ESCAPED_HOST_PATH/" > "$TARGET_DI
 chmod o+r "$TARGET_DIR/$HOST_NAME.json"
 
 echo "Native messaging host $HOST_NAME has been installed."
+echo "=> $TARGET_DIR/$HOST_NAME.json"
