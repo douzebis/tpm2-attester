@@ -3,7 +3,7 @@
 function appendMessage(msg) {
     let text = JSON.stringify(msg)
     console.log(text)
-    document.getElementById('response').innerHTML += "<p>" + text + "</p>";
+    document.getElementById('response').value += "<p>" + text + "</p>";
 }
 
 function updateUiState() {
@@ -32,6 +32,47 @@ document.getElementById('input-text').addEventListener('keypress', function(even
         event.preventDefault();
         // Trigger the button element with a click
         sendMsg()
+    }
+})
+
+document.getElementById('get-ak-button').addEventListener('click', function() {
+    let query = {
+        "query": "get-ak-pub"
+    }
+    chrome.runtime.sendMessage(query, (response) => {
+        document.getElementById('ak-text').value = response['ak-pub']
+    });
+})
+
+document.getElementById('get-tpm-quote-button').addEventListener('click', function() {
+    let query = {
+        "query": "get-tpm-quote",
+        "pcrs": JSON.parse(document.getElementById('pcrs-text').value)
+    }
+    chrome.runtime.sendMessage(query, (response) => {
+        document.getElementById('nonce-text').value = JSON.stringify(response['nonce'])
+        document.getElementById('tpm-attestation-text').value = JSON.stringify(response['attestation'])
+        document.getElementById('tpm-signature-text').value = JSON.stringify(response['signature'])
+    });
+})
+
+document.getElementById('verify-tpm-quote-button').addEventListener('click', function() {
+    let query = {
+        "query": "verify-tpm-quote",
+        "pcrs": JSON.parse(document.getElementById('pcrs-text').value),
+        "nonce": JSON.parse(document.getElementById('nonce-text').value),
+        "attestation": JSON.parse(document.getElementById('tpm-attestation-text').value),
+        "signature": JSON.parse(document.getElementById('tpm-signature-text').value),
+        "ak-pub": document.getElementById('ak-text').value
+    }
+    chrome.runtime.sendMessage(query, (response) => {
+        if (response['is-legit']) {
+            document.getElementById('verification').value = "OK"
+        } else {
+            document.getElementById('verification').value = "/!\\/!\\/!\\ KO /!\\/!\\/!\\"
         }
-    })
+        document.getElementById('tpm-message-text').value = response['message']
+    });
+})
+
 updateUiState()

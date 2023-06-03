@@ -10,19 +10,30 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/json"
+	"flag"
 	"io"
 	"log"
 	"os"
 	"unsafe"
+
+	"main/src/lib"
+	"main/src/steps"
+	"main/src/teepeem"
 )
 
-// constants for Logger
 var (
-	// Trace logs general information messages.
-	Trace *log.Logger
-	// Error logs error messages.
-	Error *log.Logger
+	tpmPath = flag.String("tpm-path", "/dev/tpmrm0", "Path to the TPM device (character device or a Unix socket).")
+	flush   = flag.String("flush", "all", "Flush contexts, must be oneof transient|saved|loaded|all")
+	rwc     io.ReadWriteCloser
 )
+
+//// constants for Logger
+//var (
+//	// Trace logs general information messages.
+//	Trace *log.Logger
+//	// Error logs error messages.
+//	Error *log.Logger
+//)
 
 // nativeEndian used to detect native byte order
 var nativeEndian binary.ByteOrder
@@ -32,23 +43,29 @@ var bufferSize = 8192
 
 // IncomingMessage represents a message sent to the native host.
 type IncomingMessage struct {
-	Query string `json:"query"`
-	Nonce string `json:"nonce"`
-	Pcrs []int `json:"pcrs"`
+	Query       string    `json:"query"`
+	Nonce       [32]byte  `json:"nonce"`
+	Attestation [145]byte `json:"attestation"`
+	Signature   [256]byte `json:"signature"`
+	AkPub       string    `json:"ak-pub"`
+	Pcrs        []int     `json:"pcrs"`
 }
 
 // OutgoingMessage respresents a response to an incoming message query.
 type OutgoingMessage struct {
-	Query    string `json:"query"`
-	Nonce string `json:"nonce"`
-	Pcrs []int `json:"pcrs"`
-	Response string `json:"response"`
+	Query       string    `json:"query"`
+	Nonce       [32]byte  `json:"nonce"`
+	Attestation [145]byte `json:"attestation"`
+	Signature   [256]byte `json:"signature"`
+	AkPub       string    `json:"ak-pub"`
+	IsLegit     bool      `json:"is-legit"`
+	Message     string    `json:"message"`
 }
 
 // Init initializes logger and determines native byte order.
 func Init(traceHandle io.Writer, errorHandle io.Writer) {
-	Trace = log.New(traceHandle, "TRACE: ", log.Ldate|log.Ltime|log.Lshortfile)
-	Error = log.New(errorHandle, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
+	lib.Trace = log.New(traceHandle, "TRACE: ", log.Ldate|log.Ltime|log.Lshortfile)
+	lib.Error = log.New(errorHandle, "ERROR: ", log.Ldate|log.Ltime|log.Lshortfile)
 
 	// determine native byte order so that we can read message size correctly
 	var one int16 = 1
@@ -64,16 +81,20 @@ func main() {
 	file, err := os.OpenFile("/tmp/chrome-native-host-log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		Init(os.Stdout, os.Stderr)
-		Error.Printf("Unable to create and/or open log file. Will log to Stdout and Stderr. Error: %v", err)
+		lib.Error.Printf("Unable to create and/or open log file. Will log to Stdout and Stderr. Error: %v", err)
 	} else {
 		Init(file, file)
 		// ensure we close the log file when we're done
 		defer file.Close()
 	}
 
-	Trace.Printf("Chrome native messaging host started. Native byte order: %v.", nativeEndian)
+	// Open TPM and Flush handles
+	rwc = teepeem.OpenFlush(*tpmPath, *flush)
+	defer rwc.Close()
+
+	lib.Trace.Printf("Chrome native messaging host started. Native byte order: %v.", nativeEndian)
 	read()
-	Trace.Print("Chrome native messaging host exited.")
+	lib.Trace.Print("Chrome native messaging host exited.")
 }
 
 // read Creates a new buffered I/O reader and reads messages from Stdin.
@@ -81,7 +102,7 @@ func read() {
 	v := bufio.NewReader(os.Stdin)
 	// adjust buffer size to accommodate your json payload size limits; default is 4096
 	s := bufio.NewReaderSize(v, bufferSize)
-	Trace.Printf("IO buffer reader created with buffer size of %v.", s.Size())
+	lib.Trace.Printf("IO buffer reader created with buffer size of %v.", s.Size())
 
 	lengthBytes := make([]byte, 4)
 	lengthNum := int(0)
@@ -91,26 +112,26 @@ func read() {
 	for b, err := s.Read(lengthBytes); b > 0 && err == nil; b, err = s.Read(lengthBytes) {
 		// convert message length bytes to integer value
 		lengthNum = readMessageLength(lengthBytes)
-		Trace.Printf("Message size in bytes: %v", lengthNum)
+		lib.Trace.Printf("Message size in bytes: %v", lengthNum)
 
 		// If message length exceeds size of buffer, the message will be truncated.
 		// This will likely cause an error when we attempt to unmarshal message to JSON.
 		if lengthNum > bufferSize {
-			Error.Printf("Message size of %d exceeds buffer size of %d. Message will be truncated and is unlikely to unmarshal to JSON.", lengthNum, bufferSize)
+			lib.Error.Printf("Message size of %d exceeds buffer size of %d. Message will be truncated and is unlikely to unmarshal to JSON.", lengthNum, bufferSize)
 		}
 
 		// read the content of the message from buffer
 		content := make([]byte, lengthNum)
 		_, err := s.Read(content)
 		if err != nil && err != io.EOF {
-			Error.Fatal(err)
+			lib.Error.Fatal(err)
 		}
 
 		// message has been read, now parse and process
 		parseMessage(content)
 	}
 
-	Trace.Print("Stdin closed.")
+	lib.Trace.Print("Stdin closed.")
 }
 
 // readMessageLength reads and returns the message length value in native byte order.
@@ -119,7 +140,7 @@ func readMessageLength(msg []byte) int {
 	buf := bytes.NewBuffer(msg)
 	err := binary.Read(buf, nativeEndian, &length)
 	if err != nil {
-		Error.Printf("Unable to read bytes representing message length: %v", err)
+		lib.Error.Printf("Unable to read bytes representing message length: %v", err)
 	}
 	return int(length)
 }
@@ -127,25 +148,42 @@ func readMessageLength(msg []byte) int {
 // parseMessage parses incoming message
 func parseMessage(msg []byte) {
 	iMsg := decodeMessage(msg)
-	Trace.Printf("Message received: %s", msg)
+	lib.Trace.Printf("Message received: %s", msg)
 
 	// start building outgoing json message
 	oMsg := OutgoingMessage{
 		Query: iMsg.Query,
-		Pcrs: iMsg.Pcrs,
-		Nonce: iMsg.Nonce,
 	}
 
 	switch iMsg.Query {
-	case "ping":
-		oMsg.Response = "pong"
-	case "hello":
-		oMsg.Response = "goodbye"
-	default:
-		oMsg.Response = "42"
+	case "get-ak-pub":
+		oMsg.AkPub = string(steps.ExtGetAkPub("Verifier/ak"))
+	case "get-tpm-quote":
+		lib.Trace.Print("AAA")
+		nonce, attestation, signature := steps.ExtGetTpmQuote(
+			rwc,
+			iMsg.Pcrs,
+		)
+		lib.Trace.Print("BBB")
+		var byteArray [32]byte
+		copy(byteArray[:], nonce)
+		oMsg.Nonce = byteArray
+		copy(oMsg.Attestation[:], attestation)
+		copy(oMsg.Signature[:], signature)
+	case "verify-tpm-quote":
+		lib.Trace.Print("In case.")
+		oMsg.IsLegit, oMsg.Message = steps.ExtVerifyTpmQuote(
+			"CICD/cicd-prediction", // IN
+			iMsg.Pcrs,              // IN
+			iMsg.Nonce[:],          // IN
+			iMsg.Attestation[:],    // IN
+			iMsg.Signature[:],      // IN
+			iMsg.AkPub,             // IN
+		)
+		lib.Trace.Print("After case.")
 	}
-
 	send(oMsg)
+	lib.Trace.Print("After response.")
 }
 
 // decodeMessage unmarshals incoming json request and returns query value.
@@ -153,7 +191,7 @@ func decodeMessage(msg []byte) IncomingMessage {
 	var iMsg IncomingMessage
 	err := json.Unmarshal(msg, &iMsg)
 	if err != nil {
-		Error.Printf("Unable to unmarshal json to struct: %v", err)
+		lib.Error.Printf("Unable to unmarshal json to struct: %v", err)
 	}
 	return iMsg
 }
@@ -166,12 +204,12 @@ func send(msg OutgoingMessage) {
 	var msgBuf bytes.Buffer
 	_, err := msgBuf.Write(byteMsg)
 	if err != nil {
-		Error.Printf("Unable to write message length to message buffer: %v", err)
+		lib.Error.Printf("Unable to write message length to message buffer: %v", err)
 	}
 
 	_, err = msgBuf.WriteTo(os.Stdout)
 	if err != nil {
-		Error.Printf("Unable to write message buffer to Stdout: %v", err)
+		lib.Error.Printf("Unable to write message buffer to Stdout: %v", err)
 	}
 }
 
@@ -179,7 +217,7 @@ func send(msg OutgoingMessage) {
 func dataToBytes(msg OutgoingMessage) []byte {
 	byteMsg, err := json.Marshal(msg)
 	if err != nil {
-		Error.Printf("Unable to marshal OutgoingMessage struct to slice of bytes: %v", err)
+		lib.Error.Printf("Unable to marshal OutgoingMessage struct to slice of bytes: %v", err)
 	}
 	return byteMsg
 }
@@ -188,6 +226,6 @@ func dataToBytes(msg OutgoingMessage) []byte {
 func writeMessageLength(msg []byte) {
 	err := binary.Write(os.Stdout, nativeEndian, uint32(len(msg)))
 	if err != nil {
-		Error.Printf("Unable to write message length to Stdout: %v", err)
+		lib.Error.Printf("Unable to write message length to Stdout: %v", err)
 	}
 }

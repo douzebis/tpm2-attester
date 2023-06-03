@@ -6,8 +6,17 @@ import (
 	"fmt"
 	"io/fs"
 	"io/ioutil"
+	"log"
 
 	"github.com/golang/glog"
+)
+
+// constants for Logger
+var (
+	// Trace logs general information messages.
+	Trace *log.Logger
+	// Error logs error messages.
+	Error *log.Logger
 )
 
 const (

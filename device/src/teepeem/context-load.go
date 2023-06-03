@@ -22,7 +22,7 @@ func ContextLoad(
 	if err != nil {
 		lib.Fatal("tpm2.ContextLoad() failed: %v", err)
 	}
-	lib.Verbose("tpm2.ContextLoad() returned ùv", ek)
+	lib.Verbose("tpm2.ContextLoad() returned %v", ek)
 
 	return ek
 }

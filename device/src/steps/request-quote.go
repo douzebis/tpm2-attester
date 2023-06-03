@@ -14,12 +14,14 @@ import (
 
 func RequestQuote(
 	quoteNoncePath string,
+) (
+	nonce []byte,
 ) {
 
 	lib.PRINT("=== VERIFIER: GENERATE QUOTE REQUEST ===========================================")
 
 	// Generate a nonce for the quote requestk challenge
-	nonce := make([]byte, 32)
+	nonce = make([]byte, 32)
 	_, err := rand.Read(nonce)
 	if err != nil {
 		lib.Fatal("rand.Read() failed: %v", err)
@@ -29,4 +31,5 @@ func RequestQuote(
 	// Write nonce to disk
 	lib.Write(fmt.Sprintf("%s.bin", quoteNoncePath), nonce, 0600)
 
+	return nonce
 }
