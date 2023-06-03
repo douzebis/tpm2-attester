@@ -1,0 +1,10 @@
+{
+  "name": "com.douzebis.attester",
+  "version": "1.0.0",
+  "description": "TPM 2.0 Attester",
+  "path": "/Users/fred/code/tpm2-attester/attester/main",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://klgjfnglmgagbclbdhojcojdboegofda/"
+  ]
+}
