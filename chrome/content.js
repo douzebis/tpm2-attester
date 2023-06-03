@@ -27,7 +27,7 @@ function sendMsg() {
 document.getElementById('send-message-button').addEventListener('click', sendMsg)
 document.getElementById('input-text').addEventListener('keypress', function(event) {
     // If the user presses the "Enter" key on the keyboard
-    if (event.key === "Enter") {
+    if (event.key === "Enter" && event.getModifierState("Control")) {
         // Cancel the default action, if needed
         event.preventDefault();
         // Trigger the button element with a click

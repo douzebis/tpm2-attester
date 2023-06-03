@@ -33,11 +33,15 @@ var bufferSize = 8192
 // IncomingMessage represents a message sent to the native host.
 type IncomingMessage struct {
 	Query string `json:"query"`
+	Nonce string `json:"nonce"`
+	Pcrs []int `json:"pcrs"`
 }
 
 // OutgoingMessage respresents a response to an incoming message query.
 type OutgoingMessage struct {
 	Query    string `json:"query"`
+	Nonce string `json:"nonce"`
+	Pcrs []int `json:"pcrs"`
 	Response string `json:"response"`
 }
 
@@ -128,6 +132,8 @@ func parseMessage(msg []byte) {
 	// start building outgoing json message
 	oMsg := OutgoingMessage{
 		Query: iMsg.Query,
+		Pcrs: iMsg.Pcrs,
+		Nonce: iMsg.Nonce,
 	}
 
 	switch iMsg.Query {
