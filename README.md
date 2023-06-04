@@ -88,7 +88,7 @@ Take ownership of the TPM and record the TPM/PCR reference values:
 #### Chromium Extension
 Install the chromium extension:
 ```bash
-(cd device && ./install-dev.sh)
+(cd device && ./install-dev.sh chromium)
 ```
 Then:
 - open `chromium`
