@@ -26,6 +26,8 @@ func ExtVerifyTpmQuote(
 	// Local panic handler
 	defer func() {
 		if e := recover(); e != nil {
+			// In the recovery process, we override the value of ExtVerifyTpmQuote named return parameters
+			// as appropriate to convey the nature of the problem back to the browser window.
 			isLegit = false
 			switch x := e.(type) {
 			case string:
