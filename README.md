@@ -17,9 +17,10 @@ This tutorial shows a possible implementation, leveraging an Attester daemon run
 The design for glueing browser and daemon consists of:
 - The "authentication" window in the user's browser shares its DOM with Javascript code injected by a browser extension[^1], which enables communication via DOM events.
 - The injected Javascript code communicates with the extension's service-worker via the [Message Passing API](https://developer.chrome.com/docs/extensions/mv3/messaging/).
-- The extension's service-worker communicates with the Attester daemon via the [Native Messaging API](https://developer.chrome.com/docs/extensions/mv3/nativeMessaging/).
+- The extension's service-worker communicates with the Attester daemon via the [Native Messaging API](https://developer.chrome.com/docs/extensions/mv3/nativeMessaging/)[^2].
 
 [^1]: The browser extension has to be installed in the user's terminal in the first place.
+[^2]: For the extension service-worker to native daemon communication, I have heavily borrowed from [John Farley's mini-project on Github](https://github.com/jfarleyx/chrome-native-messaging-golang).
 
 ## Assets used for the Demo
 
