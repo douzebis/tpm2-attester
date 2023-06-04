@@ -4,6 +4,9 @@ package main
 
 import (
 	"flag"
+	"runtime/debug"
+
+	"github.com/golang/glog"
 
 	"main/src/certs"
 	"main/src/lib"
@@ -18,6 +21,14 @@ var (
 
 func main() {
 	flag.Parse()
+
+	// Global panic handler
+	defer func() {
+		if message := recover(); message != nil {
+			glog.V(0).Infof("%s%s%s", lib.RED, message, lib.RESET)
+			glog.V(0).Infof("%s%s%s", lib.PURPLE, debug.Stack(), lib.RESET)
+		}
+	}()
 
 	lib.PRINT("### INIT: CREATE CA ROOT FOR MANUFACTURER AND OWNER ############################")
 

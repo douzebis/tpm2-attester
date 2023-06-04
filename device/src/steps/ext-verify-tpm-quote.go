@@ -23,6 +23,19 @@ func ExtVerifyTpmQuote(
 	isLegit bool,
 	message string,
 ) {
+	// Local panic handler
+	defer func() {
+		if e := recover(); e != nil {
+			isLegit = false
+			switch x := e.(type) {
+			case string:
+				message = x
+			default:
+				message = "unknown error"
+			}
+		}
+	}()
+
 	// Retrieve events log
 	eventsLog := lib.Read(fmt.Sprintf("%s.bin", cicdPredictionPath))
 	lib.Trace.Print("In deeper.")

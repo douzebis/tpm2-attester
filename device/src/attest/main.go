@@ -14,6 +14,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"runtime/debug"
 	"unsafe"
 
 	"main/src/lib"
@@ -78,6 +79,17 @@ func Init(traceHandle io.Writer, errorHandle io.Writer) {
 }
 
 func main() {
+	// force all output through "log" (including "main/src/lib"'s)
+	lib.UseLog = true
+
+	// Global panic handler
+	defer func() {
+		if message := recover(); message != nil {
+			lib.Error.Printf("%s", message)
+			lib.Error.Printf("%s", debug.Stack())
+		}
+	}()
+
 	file, err := os.OpenFile("/tmp/chrome-native-host-log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		Init(os.Stdout, os.Stderr)
@@ -180,7 +192,7 @@ func parseMessage(msg []byte) {
 			iMsg.Signature[:],      // IN
 			iMsg.AkPub,             // IN
 		)
-		lib.Trace.Print("After case.")
+		lib.Print("After case: %v %s", oMsg.IsLegit, oMsg.Message)
 	}
 	send(oMsg)
 	lib.Trace.Print("After response.")

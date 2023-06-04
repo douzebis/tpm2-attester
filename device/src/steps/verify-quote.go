@@ -134,29 +134,21 @@ func VerifyQuote2(
 	lib.PRINT("=== VERIFIER: VERIFY QUOTE =====================================================")
 
 	att, err := tpm2.DecodeAttestationData(attestation)
-	lib.Trace.Print("A")
 	if err != nil {
-		message = fmt.Sprintf("DecodeAttestationData() failed: %v", err)
-		lib.Error.Print(message)
-		return false, message
+		lib.Fatal("DecodeAttestationData() failed: %v", err)
 	}
-	lib.Trace.Print("B")
 
 	lib.Verbose("Attestation ExtraData (nonce): 0x%s ", hex.EncodeToString(att.ExtraData))
 	lib.Verbose("Attestation PCR#: %v ", att.AttestedQuoteInfo.PCRSelection.PCRs)
 	lib.Verbose("Attestation Hash: 0x%s ", hex.EncodeToString(att.AttestedQuoteInfo.PCRDigest))
-	lib.Trace.Print("C")
 
 	// Compare the nonce that is embedded within the attestation. This should
 	// match the one we sent in earlier.
 	if !bytes.Equal(nonce, att.ExtraData) {
-		message = fmt.Sprintf("Nonce Value mismatch Got: (0x%s) Expected: (0x%s)",
+		lib.Fatal("Nonce Value mismatch Got: (0x%s) Expected: (0x%s)",
 			hex.EncodeToString(att.ExtraData), hex.EncodeToString(nonce))
-		lib.Error.Print(message)
-		return false, message
 	}
 	lib.Print("Nonce from Quote matches expected nonce")
-	lib.Trace.Print("D")
 
 	sigL := tpm2.SignatureRSA{
 		HashAlg:   tpm2.AlgSHA256,
@@ -164,45 +156,31 @@ func VerifyQuote2(
 	}
 	lib.Verbose("sigL: %v", sigL)
 
-	lib.Trace.Print("E")
-	lib.Trace.Print("F")
-
 	if !bytes.Equal(pcrDigest[:], att.AttestedQuoteInfo.PCRDigest) {
-		message = fmt.Sprintf("Unexpected PCR hash Value Got 0x%s Expected: 0x%s",
+		lib.Fatal("Unexpected PCR hash Value Got 0x%s Expected: 0x%s",
 			hex.EncodeToString(att.AttestedQuoteInfo.PCRDigest), hex.EncodeToString(pcrDigest[:]))
-		lib.Error.Print(message)
-		return false, message
 	}
 	lib.Print("PCRs digest from Quote matches expected digest")
 
-	lib.Trace.Print("G")
 	// Verify AK signature
 	// use the AK from the original attestation to verify the signature of the Attestation
 	// rsaPub := rsa.PublicKey{E: int(tPub.RSAParameters.Exponent()), N: tPub.RSAParameters.Modulus()}
-	fatal, msg, akPublicKey := certs.ReadPublicKeyPEM(akPubPEM)
-	if fatal {
-		message = fmt.Sprintf("Cannot decode AK: %s", msg)
-		lib.Error.Print(message)
-		return false, message
-	}
-	lib.Trace.Print("H")
+	akPublicKey := certs.ReadPublicKeyPEM(akPubPEM)
+	//fatal, msg, akPublicKey := certs.ReadPublicKeyPEM(akPubPEM)
+	//if fatal {
+	//	lib.Fatal("Cannot decode AK: %s", msg)
+	//}
 	hsh := crypto.SHA256.New()
-	lib.Trace.Print("I")
 	hsh.Write(attestation)
-	lib.Trace.Print("J")
 	err = rsa.VerifyPKCS1v15(
 		&akPublicKey,
 		crypto.SHA256,
 		hsh.Sum(nil),
 		sigL.Signature,
 	)
-	lib.Trace.Print("K")
 	if err != nil {
-		message = fmt.Sprintf("rsa.VerifyPKCS1v15() failed: %v", err)
-		lib.Error.Print(message)
-		return false, message
+		lib.Fatal("rsa.VerifyPKCS1v15() failed: %v", err)
 	}
-	lib.Trace.Print("L")
 	lib.Print("Quote signature is valid")
 	return true, "All good ;)"
 }
