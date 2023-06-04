@@ -1,6 +1,6 @@
 module main
 
-go 1.17
+go 1.19
 
 require github.com/google/go-attestation v0.4.4-0.20220404204839-8820d49b18d9
 
