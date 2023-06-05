@@ -69,7 +69,7 @@ export PATH=/usr/local/go/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:
 go version
 ```
 
-### Build an Start the Demo
+### Ready the Demo
 
 #### TPM Ownership
 On the host:
@@ -114,7 +114,7 @@ Launch an HTTP server for the "authentication" webpage.
 (cd chrome/ && python3 -m http.server &)
 ```
 
-### Run the Demo
+## Run the Demo
 
 - In `chromium` navigate to `http://localhost:8000/index.html`:
 <img src="./attest-1.png">
@@ -127,25 +127,25 @@ Launch an HTTP server for the "authentication" webpage.
 - Tamper (say) with the TPM Signature, and click `[Verify]` again... this time the Verifier complains!
 <img src="./attest-5.png">
 
-### Troubleshooting
+## Troubleshooting
 
 If the `index.html` page is not responsive, it may have lost contact with the TPM daemon.
 
 Traces/consoles are available to troubleshoot.
 
-#### Injected Javascript
+### Injected Javascript
 
 The injected `content.js` Javascript code handles the communication between the `index.html` window and the extension's service worker.
 Right-click "Inspect" on the `index.html` window and you get access to the source code and a console.
 <img src="./chromium-2.png">
 
 
-#### Extension service worker
+### Extension service worker
 The extension's service worker handles the communication with the TPM daemon.
 Navigate to `chrome://extensions` and click on the *service worker* link for the extension; you get access to the source code and a console.
 <img src="./chromium-3.png">
 
-#### TPM daemon
+### TPM daemon
 The TPM daemon outputs execution logs to `/tmp/`:
 ```bash
 $ tail -f /tmp/chrome-native-host-log.txt 
