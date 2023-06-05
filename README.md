@@ -131,7 +131,7 @@ Launch an HTTP server for the "authentication" webpage.
 
 If the `index.html` page is not responsive, it may have lost contact with the TPM daemon.
 
-Traces/consoles are available to troubleshoot.
+Traces/consoles are available for troubleshooting.
 
 ### Injected Javascript
 
