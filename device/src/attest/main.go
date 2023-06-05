@@ -171,19 +171,16 @@ func parseMessage(msg []byte) {
 	case "get-ak-pub":
 		oMsg.AkPub = string(steps.ExtGetAkPub("Verifier/ak"))
 	case "get-tpm-quote":
-		lib.Trace.Print("AAA")
 		nonce, attestation, signature := steps.ExtGetTpmQuote(
 			rwc,
 			iMsg.Pcrs,
 		)
-		lib.Trace.Print("BBB")
 		var byteArray [32]byte
 		copy(byteArray[:], nonce)
 		oMsg.Nonce = byteArray
 		copy(oMsg.Attestation[:], attestation)
 		copy(oMsg.Signature[:], signature)
 	case "verify-tpm-quote":
-		lib.Trace.Print("In case.")
 		oMsg.IsLegit, oMsg.Message = steps.ExtVerifyTpmQuote(
 			"CICD/cicd-prediction", // IN
 			iMsg.Pcrs,              // IN
@@ -192,10 +189,8 @@ func parseMessage(msg []byte) {
 			iMsg.Signature[:],      // IN
 			iMsg.AkPub,             // IN
 		)
-		lib.Print("After case: %v %s", oMsg.IsLegit, oMsg.Message)
 	}
 	send(oMsg)
-	lib.Trace.Print("After response.")
 }
 
 // decodeMessage unmarshals incoming json request and returns query value.

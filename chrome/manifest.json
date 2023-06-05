@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "TPM 2.0 Attesters",
+  "name": "TPM 2.0 Attester",
   "description": "TPM 2.0 Attester",
   "version": "1.0.0",
   "icons": {

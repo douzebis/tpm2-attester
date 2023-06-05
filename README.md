@@ -87,18 +87,26 @@ Take ownership of the TPM and record the TPM/PCR reference values:
 ```
 
 #### Chromium Extension
-Install the chromium extension:
-```bash
-(cd device && ./install-dev.sh chromium)
-```
-Then:
+First retrieve the extension ID on your system:
 - open `chromium`
 - navigate to `chrome://extensions`
 - activate `Developer mode` switch
 - click `Load unpacked`
 - select the `tpm2-attester/chrome` directory and load the extension
+- copy the extension ID (e.g. ejjoloepomkaefacigjcjpedphnlflpn)
 
-/!\ You may have to update the extension ID (e.g. `ID: omgdoephiiagfflfpomaobelgfflidha`) in the `device/com.douzebis.attester.json` extension config file. If this is the case, unload the extensions, fix the config file and redo the steps from `./install-dev.sh` on.
+Install the chromium extension[^3]:
+```bash
+(cd device && ./install-dev.sh --browser chromium --extension-id ejjoloepomkaefacigjcjpedphnlflpn)
+```
+[^3]: If you're installing for chrome, replace `--browser chromium` with `--browser chrome`
+
+Finally:
+- navigate back to `chrome://extensions`
+- reload the TPM 2.0 Attester extension
+
+Click on the *service worker* link; it shoud say: `Connected to native messaging host <b>com.douzebis.attester</b>ìmag
+<img src="./chromium-1.png">
 
 #### HTTP Server
 Launch an HTTP server for the "authentication" webpage.
@@ -118,3 +126,36 @@ Launch an HTTP server for the "authentication" webpage.
 <img src="./attest-4.png">
 - Tamper (say) with the TPM Signature, and click `[Verify]` again... this time the Verifier complains!
 <img src="./attest-5.png">
+
+### Troubleshooting
+
+If the `index.html` page is not responsive, it may have lost contact with the TPM daemon.
+
+Traces/consoles are available to troubleshoot.
+
+#### Injected Javascript
+
+The injected `content.js` Javascript code handles the communication between the `index.html` window and the extension's service worker.
+Right-click "Inspect" on the `index.html` window and you get access to the source code and a console.
+<img src="./chromium-2.png">
+
+
+#### Extension service worker
+The extension's service worker handles the communication with the TPM daemon.
+Navigate to `chrome://extensions` and click on the *service worker* link for the extension; you get access to the source code and a console.
+
+#### TPM daemon
+The TPM daemon outputs execution logs to `/tmp/`:
+```bash
+$ tail -f /tmp/chrome-native-host-log.txt 
+TRACE: 2023/06/05 22:57:11 main.go:107: Chrome native messaging host started. Native byte order: LittleEndian.
+TRACE: 2023/06/05 22:57:11 main.go:117: IO buffer reader created with buffer size of 8192.
+127.0.0.1 - - [05/Jun/2023 22:57:23] "GET /index.html HTTP/1.1" 304 -
+TRACE: 2023/06/05 22:57:27 main.go:127: Message size in bytes: 22
+TRACE: 2023/06/05 22:57:27 main.go:163: Message received: {"query":"get-ak-pub"}
+TRACE: 2023/06/05 22:57:27 output.go:61: Read Verifier/ak.pub
+TRACE: 2023/06/05 22:57:27 output.go:70: publicKeyPEM: [45 45 45 45 45 66 69 71 73 78 32 80 85 66 76 73 67 32 75 69 89 45 45 45 45 45 10 77 73 73 66 73 106 65 78 66 103 107 113 104 107 105 71 57 119 48 66 65 81 69 70 65 65 79 67 65 81 56 65 77 73 73 66 67 103 75 67 65 81 69 65 117 55 100 77 79 70 74 69 117 116 85 43 76 98 66 52 47 51 77 78 10 113 82 87 103 113 57 109 118 105 78 110 107 106 104 65 115 110 84 99 66 121 51 113 66 70 120 117 107 74 80 67 112 102 118 78 83 86 121 86 43 86 75 85 48 76 108 117 101 109 87 113 121 52 120 90 107 52 74 53 79 102 84 47 105 10 101 57 114 112 88 55 87 90 105 81 65 105 82 121 104 85 73 69 82 109 102 72 108 118 117 117 75 104 107 115 70 69 54 52 69 103 47 55 70 71 98 112 75 110 119 81 87 83 119 101 48 74 122 54 122 90 101 110 89 71 76 51 54 112 10 113 100 120 82 97 97 108 47 116 70 85 49 112 68 79 111 48 66 55 90 75 87 75 52 108 97 99 110 69 74 118 66 118 85 110 118 99 70 73 55 71 107 70 117 108 43 68 117 112 112 117 112 72 55 55 65 122 105 77 78 114 80 116 110 10 67 43 116 118 56 55 76 56 115 55 48 90 112 80 97 116 72 55 74 119 83 84 43 78 119 114 85 82 68 100 43 73 55 67 78 85 55 49 97 72 52 69 56 102 109 99 113 71 70 66 110 51 107 52 69 70 67 87 55 65 55 101 72 78 10 106 67 55 84 69 98 103 49 51 102 97 104 110 76 79 48 56 74 73 80 55 116 85 88 82 52 69 89 114 82 105 106 81 69 53 108 85 66 71 90 117 53 48 99 104 120 48 67 57 109 114 57 79 49 77 104 52 116 101 106 54 102 105 113 10 117 81 73 68 65 81 65 66 10 45 45 45 45 45 69 78 68 32 80 85 66 76 73 67 32 75 69 89 45 45 45 45 45 10]
+
+```
+
+

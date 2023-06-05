@@ -1,6 +1,47 @@
 #!/bin/bash
 # SPDX-License-Identifier: Apache-2.0
 
+#!/bin/bash
+
+POSITIONAL_ARGS=()
+
+while [[ $# -gt 0 ]]; do
+  case $1 in
+    -h|--help)
+      EXTENSION_ID="$2"
+      shift # past argument
+      shift # past value
+      cat <<'EOF'
+Usage: install-dev.sh [OPTION]...
+Install native-messaging manifest file on host
+
+  -b, --browser            chrome or chromium
+  -i, --extension-id       extension id (e.g. ejjoloepomkaefacigjcjpedphnlflpn)
+EOF
+      ;;
+    -b|--browser)
+      BROWSER="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -i|--extension-id)
+      EXTENSION_ID="$2"
+      shift # past argument
+      shift # past value
+      ;;
+    -*|--*)
+      echo "Unknown option $1"
+      exit 1
+      ;;
+    *)
+      POSITIONAL_ARGS+=("$1") # save positional arg
+      shift # past argument
+      ;;
+  esac
+done
+
+set -- "${POSITIONAL_ARGS[@]}" # restore positional parameters
+
 set -e
 
 DIR="$( cd "$( dirname "$0" )" && pwd )"
@@ -10,7 +51,7 @@ if [ "$(uname -s)" = "Darwin" ]; then
   else
     TARGET_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
   fi
-elif [ "$1" != "chromium" ]; then
+elif [ "$BROWSER" != "chromium" ]; then
   if [ "$(whoami)" = "root" ]; then
     TARGET_DIR="/etc/opt/chrome/native-messaging-hosts"
   else
@@ -35,7 +76,10 @@ mkdir -p "$TARGET_DIR"
 # Update host path in the manifest.
 HOST_PATH=$DIR/attester
 ESCAPED_HOST_PATH=${HOST_PATH////\\/}
-cat "$DIR/$HOST_NAME.json" | sed "s/HOST_PATH/$ESCAPED_HOST_PATH/" > "$TARGET_DIR/$HOST_NAME.json"
+cat "$DIR/$HOST_NAME.json" \
+| sed "s/HOST_PATH/$ESCAPED_HOST_PATH/" \
+| sed "s/EXTENSION_ID/$EXTENSION_ID/" \
+> "$TARGET_DIR/$HOST_NAME.json"
 
 # Set permissions for the manifest so that all users can read it.
 chmod o+r "$TARGET_DIR/$HOST_NAME.json"
