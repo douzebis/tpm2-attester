@@ -7,6 +7,7 @@ import (
 	"io/fs"
 	"io/ioutil"
 	"log"
+	"runtime/debug"
 
 	"github.com/golang/glog"
 )
@@ -34,6 +35,8 @@ const (
 
 func Fatal(format string, params ...interface{}) {
 	message := fmt.Sprintf(format, params...)
+	Print(message)
+	Print("%s", debug.Stack())
 	panic(message)
 }
 

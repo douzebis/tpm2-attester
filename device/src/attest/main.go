@@ -23,6 +23,12 @@ import (
 )
 
 var (
+	// deviceDir is needed because firefox behaves differently than chromium
+	// - in chromium, the host process is started with the current directory
+	//   set to the directory that contains the host binary
+	// - in firefox, the host process is started with the current directory
+	//   set to the home directory of the process owner
+	deviceDir = "titi/tpm2-attester/device/"  // relative to $HOME, trailing "/" mandatory
 	tpmPath = flag.String("tpm-path", "/dev/tpmrm0", "Path to the TPM device (character device or a Unix socket).")
 	flush   = flag.String("flush", "all", "Flush contexts, must be oneof transient|saved|loaded|all")
 	rwc     io.ReadWriteCloser
@@ -85,8 +91,8 @@ func main() {
 	// Global panic handler
 	defer func() {
 		if message := recover(); message != nil {
-			lib.Error.Printf("%s", message)
-			lib.Error.Printf("%s", debug.Stack())
+			lib.Print("%s", message)
+			lib.Print("%s", debug.Stack())
 		}
 	}()
 
@@ -161,6 +167,11 @@ func readMessageLength(msg []byte) int {
 func parseMessage(msg []byte) {
 	iMsg := decodeMessage(msg)
 	lib.Trace.Printf("Message received: %s", msg)
+	path, err := os.Getwd()
+	if err != nil {
+		lib.Print("%v", err)
+	}
+	lib.Print("%s", path)
 
 	// start building outgoing json message
 	oMsg := OutgoingMessage{
@@ -169,10 +180,11 @@ func parseMessage(msg []byte) {
 
 	switch iMsg.Query {
 	case "get-ak-pub":
-		oMsg.AkPub = string(steps.ExtGetAkPub("Verifier/ak"))
+		oMsg.AkPub = string(steps.ExtGetAkPub(deviceDir+"Verifier/ak"))
 	case "get-tpm-quote":
 		nonce, attestation, signature := steps.ExtGetTpmQuote(
 			rwc,
+			deviceDir,
 			iMsg.Pcrs,
 		)
 		var byteArray [32]byte
@@ -182,7 +194,7 @@ func parseMessage(msg []byte) {
 		copy(oMsg.Signature[:], signature)
 	case "verify-tpm-quote":
 		oMsg.IsLegit, oMsg.Message = steps.ExtVerifyTpmQuote(
-			"CICD/cicd-prediction", // IN
+			deviceDir+"CICD/cicd-prediction", // IN
 			iMsg.Pcrs,              // IN
 			iMsg.Nonce[:],          // IN
 			iMsg.Attestation[:],    // IN

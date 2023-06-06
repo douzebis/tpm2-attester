@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <!-- SPDX-License-Identifier: Apache-2.0 -->
+    <body>
+        Platform Configuration Registers (PCRs)
+        <br/>
+        <textarea rows="1" cols="80" name="text" placeholder="[0,1,2,3,4,5,6,7,8,9,14]" id='pcrs-text'>[0,1,2,3,4,5,6,7,8,9,14]</textarea>
+        <br/>
+        Nonce
+        <br/>
+        <textarea rows="2" cols="80" name="text" placeholder="" id='nonce-text'></textarea>
+        <br/>
+        TPM Attestation
+        <br/>
+        <textarea rows="7" cols="80" name="text" placeholder="" id='tpm-attestation-text'></textarea>
+        <br/>
+        TPM Signature
+        <br/>
+        <textarea rows="13" cols="80" name="text" placeholder="" id='tpm-signature-text'></textarea>
+        <br/>
+        <button id='get-tpm-quote-button'>Get TPM quote</button>
+        <button id='verify-tpm-quote-button'>Verify</button>
+        => <input type="text" id="verification" name="text" style="text-align: center;font-weight: bold;" value="" readonly>
+        <br/>
+        <textarea rows="3" cols="80" name="text" placeholder="" id='tpm-message-text'></textarea>
+        <p></p>
+        Attestation Key <button id='get-ak-button'>Get AK pub</button>
+        <br/>
+        <textarea rows="10" cols="80" name="text" placeholder="" id='ak-text'></textarea>
+        <p></p>
+        <p></p>
+        <textarea rows="15" cols="80" name="text" placeholder="" id='input-text'></textarea>
+        <br/>
+        <button id='send-message-button'>Free-format query</button>
+        <div id='response'></div>
+        <p></p>
+    </body>
+</html>

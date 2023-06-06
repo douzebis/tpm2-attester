@@ -4,6 +4,7 @@
   "description": "TPM 2.0 Attester",
   "path": "HOST_PATH",
   "type": "stdio",
+  "allowed_extensions": [ "EXTENSION_ID" ],
   "allowed_origins": [
     "chrome-extension://EXTENSION_ID/"
   ]

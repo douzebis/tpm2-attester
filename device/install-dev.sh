@@ -15,7 +15,7 @@ while [[ $# -gt 0 ]]; do
 Usage: install-dev.sh [OPTION]...
 Install native-messaging manifest file on host
 
-  -b, --browser            chrome or chromium
+  -b, --browser            chrome | chromium | firefox
   -i, --extension-id       extension id (e.g. ejjoloepomkaefacigjcjpedphnlflpn)
 EOF
       ;;
@@ -51,18 +51,27 @@ if [ "$(uname -s)" = "Darwin" ]; then
   else
     TARGET_DIR="$HOME/Library/Application Support/Google/Chrome/NativeMessagingHosts"
   fi
-elif [ "$BROWSER" != "chromium" ]; then
-  if [ "$(whoami)" = "root" ]; then
-    TARGET_DIR="/etc/opt/chrome/native-messaging-hosts"
-  else
-    TARGET_DIR="$HOME/.config/google-chrome/NativeMessagingHosts"
-  fi
-else
+elif [ "$BROWSER" == "chromium" ]; then
   if [ "$(whoami)" = "root" ]; then
     TARGET_DIR="/etc/chromium/native-messaging-hosts"
   else
     TARGET_DIR="$HOME/.config/chromium/NativeMessagingHosts"
   fi
+elif [ "$BROWSER" == "chrome" ]; then
+  if [ "$(whoami)" = "root" ]; then
+    TARGET_DIR="/etc/opt/chrome/native-messaging-hosts"
+  else
+    TARGET_DIR="$HOME/.config/google-chrome/NativeMessagingHosts"
+  fi
+elif [ "$BROWSER" == "firefox" ]; then
+  if [ "$(whoami)" = "root" ]; then
+    TARGET_DIR="/usr/lib/mozilla/native-messaging-hosts"
+  else
+    TARGET_DIR="$HOME/.mozilla/native-messaging-hosts"
+  fi
+else
+  echo "Unknown browser type: $BROWSER" >&2
+  exit 1
 fi
 
 HOST_NAME=com.douzebis.attester

@@ -12,6 +12,7 @@ import (
 
 func ExtGetTpmQuote(
 	rwc io.ReadWriteCloser, // IN
+	deviceDir string, // IN
 	pcrs []int, // IN
 ) (
 	nonce []byte,
@@ -21,17 +22,17 @@ func ExtGetTpmQuote(
 
 	// Verifier: request PCR quote
 	nonce = RequestQuote(
-		"Verifier/nonce-quote", // OUT
+		deviceDir + "Verifier/nonce-quote", // OUT
 	)
 	lib.Trace.Print("AA")
 	// Attestor: perform PCR quote
 	attestation, signature = PerformQuote(
 		rwc,
-		"Attestor/ek",          // IN
-		"Attestor/ak",          // IN
+		deviceDir + "Attestor/ek",          // IN
+		deviceDir + "Attestor/ak",          // IN
 		pcrs,                   // IN
-		"Verifier/nonce-quote", // IN
-		"Attestor/quote",       // OUT
+		deviceDir + "Verifier/nonce-quote", // IN
+		deviceDir + "Attestor/quote",       // OUT
 	)
 	lib.Trace.Print("BB")
 
