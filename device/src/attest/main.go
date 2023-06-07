@@ -1,4 +1,7 @@
+// SPDX-License-Identifier: Apache-2.0
+
 /*
+* Original author of the native messaging "harness"
 * @Author: J. Farley
 * @Date: 2019-05-19
 * @Description: Basic chrome native messaging host example.
@@ -23,12 +26,12 @@ import (
 )
 
 var (
-	// deviceDir is needed because firefox behaves differently than chromium
+	// devicePath is needed because firefox behaves differently than chromium
 	// - in chromium, the host process is started with the current directory
 	//   set to the directory that contains the host binary
 	// - in firefox, the host process is started with the current directory
 	//   set to the home directory of the process owner
-	deviceDir = "/home/fred/titi/tpm2-attester/device/"  // use absolute path so that both chromium and firefox will work
+	devicePath = "ATTESTER_DEVICE_PATH/"  // use absolute path so that both chromium and firefox will work
 	tpmPath = flag.String("tpm-path", "/dev/tpmrm0", "Path to the TPM device (character device or a Unix socket).")
 	flush   = flag.String("flush", "all", "Flush contexts, must be oneof transient|saved|loaded|all")
 	rwc     io.ReadWriteCloser
@@ -96,7 +99,7 @@ func main() {
 		}
 	}()
 
-	file, err := os.OpenFile("/tmp/chrome-native-host-log.txt", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile("/tmp/attester.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
 		Init(os.Stdout, os.Stderr)
 		lib.Error.Printf("Unable to create and/or open log file. Will log to Stdout and Stderr. Error: %v", err)
@@ -180,11 +183,11 @@ func parseMessage(msg []byte) {
 
 	switch iMsg.Query {
 	case "get-ak-pub":
-		oMsg.AkPub = string(steps.ExtGetAkPub(deviceDir+"Verifier/ak"))
+		oMsg.AkPub = string(steps.ExtGetAkPub(devicePath+"Verifier/ak"))
 	case "get-tpm-quote":
 		nonce, attestation, signature := steps.ExtGetTpmQuote(
 			rwc,
-			deviceDir,
+			devicePath,
 			iMsg.Pcrs,
 		)
 		var byteArray [32]byte
@@ -194,7 +197,7 @@ func parseMessage(msg []byte) {
 		copy(oMsg.Signature[:], signature)
 	case "verify-tpm-quote":
 		oMsg.IsLegit, oMsg.Message = steps.ExtVerifyTpmQuote(
-			deviceDir+"CICD/cicd-prediction", // IN
+			devicePath+"CICD/cicd-prediction", // IN
 			iMsg.Pcrs,              // IN
 			iMsg.Nonce[:],          // IN
 			iMsg.Attestation[:],    // IN

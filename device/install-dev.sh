@@ -4,6 +4,8 @@
 #!/bin/bash
 
 POSITIONAL_ARGS=()
+BROWSER=""
+EXTENSION_ID=""
 
 while [[ $# -gt 0 ]]; do
   case $1 in
@@ -82,13 +84,35 @@ mkdir -p "$TARGET_DIR"
 # Copy native messaging host manifest.
 # cp "$DIR/$HOST_NAME.json" "$TARGET_DIR"
 
-# Update host path in the manifest.
+# Update host path and extension id in the manifest.
+echo "Manifest for extension $HOST_NAME has been created."
+if [ "$EXTENSION_ID" == "" ]; then
+  if [ "$BROWSER" == "firefox" ]; then
+    EXTENSION_ID=attester@example.com
+    cat ../firefox/manifest.templ > ../firefox/manifest.json
+    echo "=> ../firefox/manifest.json"
+  else
+    # https://stackoverflow.com/questions/23873623/obtaining-chrome-extension-id-for-development
+    # (command line way)
+    # Create private key called key.pem
+    # 2>/dev/null openssl genrsa 2048 | openssl pkcs8 -topk8 -nocrypt -out key.pem
+    # # Generate string to be used as "key" in manifest.json (outputs to stdout)
+    # 2>/dev/null openssl rsa -in key.pem -pubout -outform DER | openssl base64 -A
+    # # Calculate extension ID (outputs to stdout)
+    # 2>/dev/null openssl rsa -in key.pem -pubout -outform DER |  shasum -a 256 | head -c32 | tr 0-9a-f a-p
+    EXTENSION_ID=$(2>/dev/null openssl rsa -in key.pem -pubout -outform DER |  shasum -a 256 | head -c32 | tr 0-9a-f a-p)
+    EXTENSION_KEY=$(2>/dev/null openssl rsa -in key.pem -pubout -outform DER | openssl base64 -A)
+    sed "s|EXTENSION_KEY|$EXTENSION_KEY|g" ../chrome/manifest.templ > ../chrome/manifest.json
+    echo "=> ../chrome/manifest.json"
+  fi
+fi
 HOST_PATH=$DIR/attester
 ESCAPED_HOST_PATH=${HOST_PATH////\\/}
 cat "$DIR/$HOST_NAME.json" \
-| sed "s/HOST_PATH/$ESCAPED_HOST_PATH/" \
-| sed "s/EXTENSION_ID/$EXTENSION_ID/" \
+| sed "s|HOST_PATH|$ESCAPED_HOST_PATH|g" \
+| sed "s|EXTENSION_ID|$EXTENSION_ID|g" \
 > "$TARGET_DIR/$HOST_NAME.json"
+
 
 # Set permissions for the manifest so that all users can read it.
 chmod o+r "$TARGET_DIR/$HOST_NAME.json"
