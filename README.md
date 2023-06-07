@@ -32,26 +32,25 @@ The design for glueing browser and daemon consists of:
 
 ## Installation
 
-### Ubuntu-desktop guest OS
+### Ubuntu-desktop physical or virtual machine
 
-The tutorial uses [jammy-desktop-arm64](https://cdimage.ubuntu.com/jammy/daily-live/current/jammy-desktop-arm64.iso) (22.04 LTS)
+The tutorial has been tested on a [jammy-desktop-arm64](https://cdimage.ubuntu.com/jammy/daily-live/current/jammy-desktop-arm64.iso) (22.04 LTS) virtual machine.
 
 The installation is somewhat involved and is described in the [swtpm](./swtpm/README.md) page.
 
-The complete installation procedure and subsequent demo are hosted on the Ubuntu-desktop guest OS.
+You can also use a real Ubuntu server as long as the `/dev/tpmrm0` device is present. 
 
-***/!\ Don't forget to launch the `swtpm` device before you boot the Guest OS.***
+***/!\ If you are using the virtual machine setup, don't forget to launch the `swtpm` device before you boot the Guest OS.***
 
-### Non-sandboxed browser
+### Browsers
+Typical `chrome` installation should work out of the box.
+If you need to use `chromium` or `firefox`, a custom installation is required. This is [explained here](./browsers/README.md)
 
-A non-official [snap-free chromium package](https://fosspost.org/chromium-deb-package-ubuntu-22-04/) for Ubuntu 22.04 is being made available by `fosspost.org` with installation instructions.
-
-```bash
-sudo add-apt-repository ppa:saiarcot895/chromium-beta
-sudo apt remove chromium-browser
-sudo snap remove chromium
-sudo apt install chromium-browser
-```
+[//]: # (A non-official [snap-free chromium package https://fosspost.org/chromium-deb-package-ubuntu-22-04/ for Ubuntu 22.04 is being made available by fosspost.org with installation instructions.)
+[//]: # (sudo add-apt-repository ppa:saiarcot895/chromium-beta)
+[//]: # (sudo apt remove chromium-browser)
+[//]: # (sudo snap remove chromium)
+[//]: # (sudo apt install chromium-browser)
 
 Alternatively it may be possible to build chromium from source; I have to say this is probably long/complex.
 
@@ -71,42 +70,42 @@ go version
 
 ### Ready the Demo
 
-#### TPM Ownership
-On the host:
+#### Download and Compile the Needed Executables
 ```bash
 git clone https://github.com/douzebis/tpm2-attester.git
 cd tpm2-attester/
-(cd device && go build -o attester src/attest/main.go)
-(cd device && go build -o init src/init/main.go)
+(cd device && make)
 ```
 
+#### TPM Ownership
+/!\ make sure your `$USER` has access to `/dev/tpmrm0` and `/sys/kernel/security/tpm0/binary_bios_measurements`
+
 Take ownership of the TPM and record the TPM/PCR reference values:
-(make sure your `$USER` has access to `/dev/tpmrm0` and `/sys/kernel/security/tpm0/binary_bios_measurements`)
 ```bash
 (cd device && ./init --alsologtostderr -v 5)
 ```
 
-#### Chromium Extension
-First retrieve the extension ID on your system:
-- open `chromium`
+#### Attester Extension
+The demo requires an extension being installed on your browser.
+
+##### Extension installation on chrome or chromium
+- open `chrome` or `chromium`
 - navigate to `chrome://extensions`
 - activate `Developer mode` switch
 - click `Load unpacked`
 - select the `tpm2-attester/chrome` directory and load the extension
-- copy the extension ID (e.g. ejjoloepomkaefacigjcjpedphnlflpn)
-
-Install the chromium extension[^3]:
-```bash
-(cd device && ./install-dev.sh --browser chromium --extension-id ejjoloepomkaefacigjcjpedphnlflpn)
-```
-[^3]: If you're installing for chrome, replace `--browser chromium` with `--browser chrome`
-
-Finally:
-- navigate back to `chrome://extensions`
-- reload the TPM 2.0 Attester extension
 
 Click on the *service worker* link; it shoud say: `Connected to native messaging host <b>com.douzebis.attester</b>`
 <img src="./chromium-1.png">
+
+##### Extension installation on firefox
+- open `firefox`
+- navigate to `about:debugging`
+- click the `This Firefox` link
+- click `Load Temporary Add-on...`
+- select the `tpm2-attester/firefox/manifest.json` file and load the extension
+- go to `Manage Your Extensions`, then to the management page for the "TPM 2.0 Attester" extesion
+- In the `Permissions` tab, make sure the extension can `Access your data for all websites` or `Access your data for http://localhost:8000`
 
 #### HTTP Server
 Launch an HTTP server for the "authentication" webpage.
