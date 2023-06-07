@@ -34,25 +34,20 @@ The design for glueing browser and daemon consists of:
 
 ### Ubuntu-desktop physical or virtual machine
 
-The tutorial has been tested on a [jammy-desktop-arm64](https://cdimage.ubuntu.com/jammy/daily-live/current/jammy-desktop-arm64.iso) (22.04 LTS) virtual machine.
+The tutorial has been tested on:
+- [jammy-desktop-arm64](https://cdimage.ubuntu.com/jammy/daily-live/current/jammy-desktop-arm64.iso) (22.04 LTS),
+- Ubuntu 23.04 ARM64,
+- Ubuntu 23.04 AMD64.
 
-The installation is somewhat involved and is described in the [swtpm](./swtpm/README.md) page.
+It will run on a physical machine, with the assumption that the `/dev/tpmrm0` device is present. 
 
-You can also use a real Ubuntu server as long as the `/dev/tpmrm0` device is present. 
+Alternatively it will run on a virtual machine prepared as described in [the swtpm section](./swtpm/README.md).
 
 ***/!\ If you are using the virtual machine setup, don't forget to launch the `swtpm` device before you boot the Guest OS.***
 
 ### Browsers
 Typical `chrome` installation should work out of the box.
-If you need to use `chromium` or `firefox`, a custom installation is required. This is [explained here](./browsers/README.md)
-
-[//]: # (A non-official [snap-free chromium package https://fosspost.org/chromium-deb-package-ubuntu-22-04/ for Ubuntu 22.04 is being made available by fosspost.org with installation instructions.)
-[//]: # (sudo add-apt-repository ppa:saiarcot895/chromium-beta)
-[//]: # (sudo apt remove chromium-browser)
-[//]: # (sudo snap remove chromium)
-[//]: # (sudo apt install chromium-browser)
-
-Alternatively it may be possible to build chromium from source; I have to say this is probably long/complex.
+If you need to use `chromium` or `firefox`, a custom installation is required. This is explained in [the browsers section](./browsers/README.md)
 
 ### Golang >= 1.19
 
@@ -78,7 +73,7 @@ cd tpm2-attester/
 ```
 
 #### TPM Ownership
-/!\ make sure your `$USER` has access to `/dev/tpmrm0` and `/sys/kernel/security/tpm0/binary_bios_measurements`
+**/!\ make sure your `$USER` has access to `/dev/tpmrm0` and `/sys/kernel/security/tpm0/binary_bios_measurements`**
 
 Take ownership of the TPM and record the TPM/PCR reference values:
 ```bash
@@ -115,7 +110,7 @@ Launch an HTTP server for the "authentication" webpage.
 
 ## Run the Demo
 
-- In `chromium` navigate to `http://localhost:8000/index.html`:
+- In the browser, navigate to `http://localhost:8000/index.html`:
 <img src="./attest-1.png">
 - click `[Get TPM quote]`: the browser window (i.e. the Attester) retrieves a PCR quote from the TPM daemon (the list of `PCRs` and `Nonce` are chosen by the Verifier)
 <img src="./attest-2.png">
