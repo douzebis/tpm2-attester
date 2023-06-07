@@ -89,7 +89,7 @@ echo "Manifest for extension $HOST_NAME has been created."
 if [ "$EXTENSION_ID" == "" ]; then
   if [ "$BROWSER" == "firefox" ]; then
     EXTENSION_ID=attester@example.com
-    cat ../firefox/manifest.templ > ../firefox/manifest.json
+    sed "s|EXTENSION_ID|$EXTENSION_ID|g" ../firefox/manifest.templ > ../firefox/manifest.json
     echo "=> ../firefox/manifest.json"
   else
     # https://stackoverflow.com/questions/23873623/obtaining-chrome-extension-id-for-development
