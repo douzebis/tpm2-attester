@@ -28,7 +28,7 @@ var (
 	//   set to the directory that contains the host binary
 	// - in firefox, the host process is started with the current directory
 	//   set to the home directory of the process owner
-	deviceDir = "titi/tpm2-attester/device/"  // relative to $HOME, trailing "/" mandatory
+	deviceDir = "/home/fred/titi/tpm2-attester/device/"  // use absolute path so that both chromium and firefox will work
 	tpmPath = flag.String("tpm-path", "/dev/tpmrm0", "Path to the TPM device (character device or a Unix socket).")
 	flush   = flag.String("flush", "all", "Flush contexts, must be oneof transient|saved|loaded|all")
 	rwc     io.ReadWriteCloser
